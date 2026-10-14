@@ -36,6 +36,7 @@ func TasksCreate(c buffalo.Context) error {
 		return err
 	}
 	task.Title = strings.TrimSpace(task.Title)
+	task.Assignee = strings.TrimSpace(task.Assignee)
 
 	verrs, err := tx.ValidateAndCreate(task)
 	if err != nil {
@@ -84,12 +85,14 @@ func TasksUpdate(c buffalo.Context) error {
 	}
 
 	input := struct {
-		Title string `form:"title" json:"title"`
+		Title    string `form:"title" json:"title"`
+		Assignee string `form:"assignee" json:"assignee"`
 	}{}
 	if err := c.Bind(&input); err != nil {
 		return err
 	}
 	task.Title = strings.TrimSpace(input.Title)
+	task.Assignee = strings.TrimSpace(input.Assignee)
 
 	verrs, err := tx.ValidateAndUpdate(task)
 	if err != nil {

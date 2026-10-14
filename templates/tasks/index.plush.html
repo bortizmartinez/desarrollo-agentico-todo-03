@@ -33,6 +33,9 @@
             <span class="task-title"><%= t.Title %></span>
             <span class="task-meta">
               <span class="priority priority-<%= t.Priority %>"><span class="sr-only">Prioridad: </span><%= t.PriorityLabel() %></span>
+              <%= if (t.Assignee != "") { %>
+                <span class="assignee"><span class="sr-only">Responsable: </span><%= t.Assignee %></span>
+              <% } %>
             </span>
           </div>
           <%= if (t.Completed) { %>
@@ -78,16 +81,31 @@
     <button type="submit" class="button button-primary">Añadir</button>
   </div>
   <div class="new-task-meta">
-    <label for="task-priority" class="field-label">Prioridad</label>
-    <select
-      id="task-priority"
-      name="priority"
-      <%= if (len(errors.Get("priority")) > 0) { %>aria-invalid="true" aria-describedby="priority-error"<% } %>
-    >
-      <%= for (p) in priorities { %>
-        <option value="<%= p.Value %>"<%= if (p.Value == task.Priority) { %> selected<% } %>><%= p.Label %></option>
-      <% } %>
-    </select>
+    <div class="field-group">
+      <label for="task-priority" class="field-label">Prioridad</label>
+      <select
+        id="task-priority"
+        name="priority"
+        <%= if (len(errors.Get("priority")) > 0) { %>aria-invalid="true" aria-describedby="priority-error"<% } %>
+      >
+        <%= for (p) in priorities { %>
+          <option value="<%= p.Value %>"<%= if (p.Value == task.Priority) { %> selected<% } %>><%= p.Label %></option>
+        <% } %>
+      </select>
+    </div>
+    <div class="field-group">
+      <label for="task-assignee" class="field-label">Responsable</label>
+      <input
+        id="task-assignee"
+        type="text"
+        name="assignee"
+        value="<%= task.Assignee %>"
+        placeholder="Opcional"
+        maxlength="100"
+        autocomplete="off"
+        <%= if (len(errors.Get("assignee")) > 0) { %>aria-invalid="true" aria-describedby="assignee-error"<% } %>
+      >
+    </div>
   </div>
   <%= if (len(errors.Get("title")) > 0) { %>
     <p id="title-error" class="field-error" role="alert">
@@ -97,6 +115,11 @@
   <%= if (len(errors.Get("priority")) > 0) { %>
     <p id="priority-error" class="field-error" role="alert">
       <%= for (msg) in errors.Get("priority") { %><%= msg %><% } %>
+    </p>
+  <% } %>
+  <%= if (len(errors.Get("assignee")) > 0) { %>
+    <p id="assignee-error" class="field-error" role="alert">
+      <%= for (msg) in errors.Get("assignee") { %><%= msg %><% } %>
     </p>
   <% } %>
 </form>

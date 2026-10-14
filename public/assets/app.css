@@ -322,6 +322,16 @@ input[type="text"] {
   width: auto;
 }
 
+.field-group {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.new-task-meta input[type="text"] {
+  width: 12rem;
+}
+
 .field-label {
   color: var(--color-muted);
   font-size: 0.8rem;

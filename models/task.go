@@ -13,6 +13,9 @@ import (
 // TitleMaxLength es el número máximo de caracteres permitido en el título.
 const TitleMaxLength = 200
 
+// AssigneeMaxLength es el número máximo de caracteres permitido en el responsable.
+const AssigneeMaxLength = 100
+
 // Valores de prioridad admitidos.
 const (
 	PriorityUrgent = "urgente"
@@ -40,6 +43,7 @@ type Task struct {
 	ID        uuid.UUID `json:"id" db:"id" form:"-"`
 	Title     string    `json:"title" db:"title" form:"title"`
 	Priority  string    `json:"priority" db:"priority" form:"priority"`
+	Assignee  string    `json:"assignee" db:"assignee" form:"assignee"`
 	Completed bool      `json:"completed" db:"completed" form:"-"`
 	CreatedAt time.Time `json:"created_at" db:"created_at" form:"-"`
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at" form:"-"`
@@ -71,6 +75,11 @@ func (t *Task) Validate(tx *pop.Connection) (*validate.Errors, error) {
 
 	if t.Priority != "" && !validPriority(t.Priority) {
 		verrs.Add("priority", "La prioridad no es válida.")
+	}
+
+	assignee := strings.TrimSpace(t.Assignee)
+	if len([]rune(assignee)) > AssigneeMaxLength {
+		verrs.Add("assignee", fmt.Sprintf("El responsable no puede superar los %d caracteres.", AssigneeMaxLength))
 	}
 
 	return verrs, nil

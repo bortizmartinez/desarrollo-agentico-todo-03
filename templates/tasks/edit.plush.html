@@ -15,12 +15,28 @@
     maxlength="200"
     autocomplete="off"
     autofocus
-    <%= if (errors.HasAny()) { %>aria-invalid="true" aria-describedby="title-error"<% } else { %>aria-describedby="title-help"<% } %>
+    <%= if (len(errors.Get("title")) > 0) { %>aria-invalid="true" aria-describedby="title-error"<% } else { %>aria-describedby="title-help"<% } %>
   >
   <p id="title-help" class="field-hint">Hasta 200 caracteres. Los demás datos de la tarea no cambian.</p>
-  <%= if (errors.HasAny()) { %>
+  <%= if (len(errors.Get("title")) > 0) { %>
     <p id="title-error" class="field-error" role="alert">
       <%= for (msg) in errors.Get("title") { %><%= msg %><% } %>
+    </p>
+  <% } %>
+  <label for="task-assignee">Responsable</label>
+  <input
+    id="task-assignee"
+    type="text"
+    name="assignee"
+    value="<%= task.Assignee %>"
+    placeholder="Opcional"
+    maxlength="100"
+    autocomplete="off"
+    <%= if (len(errors.Get("assignee")) > 0) { %>aria-invalid="true" aria-describedby="assignee-error"<% } %>
+  >
+  <%= if (len(errors.Get("assignee")) > 0) { %>
+    <p id="assignee-error" class="field-error" role="alert">
+      <%= for (msg) in errors.Get("assignee") { %><%= msg %><% } %>
     </p>
   <% } %>
   <div class="edit-task-actions">

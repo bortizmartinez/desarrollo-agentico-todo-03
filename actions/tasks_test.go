@@ -279,7 +279,6 @@ func (as *ActionSuite) Test_TasksIndex_ShowsPriority() {
 	body := res.Body.String()
 	as.Contains(body, `class="priority priority-alta"`)
 	as.Contains(body, `<option value="media" selected>Media</option>`)
-	as.NotContains(body, `name="assignee"`)
 }
 
 func (as *ActionSuite) Test_TasksEdit_HasNoPrioritySelector() {
@@ -291,7 +290,6 @@ func (as *ActionSuite) Test_TasksEdit_HasNoPrioritySelector() {
 	res := as.HTML("/tasks/%s/edit", task.ID).Get()
 	as.Equal(200, res.Code)
 	as.NotContains(res.Body.String(), `name="priority"`)
-	as.NotContains(res.Body.String(), `name="assignee"`)
 }
 
 func (as *ActionSuite) Test_TasksUpdate_IgnoresPriority() {
@@ -314,4 +312,96 @@ func (as *ActionSuite) Test_TasksUpdate_InvalidPriorityIsIgnored() {
 	as.NoError(as.DB.Reload(task))
 	as.Equal("Nuevo", task.Title)
 	as.Equal(models.PriorityMedium, task.Priority)
+}
+
+func (as *ActionSuite) Test_TasksCreate_WithAssignee() {
+	res := as.HTML("/tasks").Post(url.Values{"title": {"Revisar contrato"}, "assignee": {"  Ana Pérez  "}})
+	as.Equal(303, res.Code)
+
+	task := &models.Task{}
+	as.NoError(as.DB.First(task))
+	as.Equal("Ana Pérez", task.Assignee)
+}
+
+func (as *ActionSuite) Test_TasksCreate_WithoutAssignee_IsEmpty() {
+	res := as.HTML("/tasks").Post(url.Values{"title": {"Sin responsable"}})
+	as.Equal(303, res.Code)
+
+	task := &models.Task{}
+	as.NoError(as.DB.First(task))
+	as.Equal("", task.Assignee)
+}
+
+func (as *ActionSuite) Test_TasksCreate_AssigneeTooLong_Invalid() {
+	assignee := strings.Repeat("a", models.AssigneeMaxLength+1)
+	res := as.HTML("/tasks").Post(url.Values{"title": {"Tarea"}, "assignee": {assignee}})
+	as.Equal(422, res.Code)
+	as.Contains(res.Body.String(), "El responsable no puede superar los 100 caracteres.")
+	as.Contains(res.Body.String(), `aria-describedby="assignee-error"`)
+
+	count, err := as.DB.Count(&models.Task{})
+	as.NoError(err)
+	as.Equal(0, count)
+}
+
+func (as *ActionSuite) Test_TasksIndex_ShowsAssignee() {
+	withAssignee := &models.Task{Title: "Con responsable", Assignee: "Luis Gómez"}
+	verrs, err := as.DB.ValidateAndCreate(withAssignee)
+	as.NoError(err)
+	as.False(verrs.HasAny())
+
+	withoutAssignee := &models.Task{Title: "Sin responsable"}
+	verrs, err = as.DB.ValidateAndCreate(withoutAssignee)
+	as.NoError(err)
+	as.False(verrs.HasAny())
+
+	res := as.HTML("/").Get()
+	as.Equal(200, res.Code)
+	as.Contains(res.Body.String(), "Luis Gómez")
+}
+
+func (as *ActionSuite) Test_TasksEdit_PrefillsAssignee() {
+	task := &models.Task{Title: "Con responsable", Assignee: "María López"}
+	verrs, err := as.DB.ValidateAndCreate(task)
+	as.NoError(err)
+	as.False(verrs.HasAny())
+
+	res := as.HTML("/tasks/%s/edit", task.ID).Get()
+	as.Equal(200, res.Code)
+	as.Contains(res.Body.String(), `value="María López"`)
+}
+
+func (as *ActionSuite) Test_TasksUpdate_ChangesAssignee() {
+	task := &models.Task{Title: "Urgente", Priority: models.PriorityUrgent}
+	verrs, err := as.DB.ValidateAndCreate(task)
+	as.NoError(err)
+	as.False(verrs.HasAny())
+
+	res := as.HTML("/tasks/%s", task.ID).Put(url.Values{"title": {"Urgente"}, "assignee": {"  Carlos Ruiz  "}})
+	as.Equal(303, res.Code)
+	as.NoError(as.DB.Reload(task))
+	as.Equal("Carlos Ruiz", task.Assignee)
+	as.Equal(models.PriorityUrgent, task.Priority)
+}
+
+func (as *ActionSuite) Test_TasksUpdate_ClearsAssignee() {
+	task := &models.Task{Title: "Con responsable", Assignee: "Pedro Sánchez"}
+	verrs, err := as.DB.ValidateAndCreate(task)
+	as.NoError(err)
+	as.False(verrs.HasAny())
+
+	res := as.HTML("/tasks/%s", task.ID).Put(url.Values{"title": {"Con responsable"}, "assignee": {""}})
+	as.Equal(303, res.Code)
+	as.NoError(as.DB.Reload(task))
+	as.Equal("", task.Assignee)
+}
+
+func (as *ActionSuite) Test_TasksUpdate_AssigneeTooLong_Invalid() {
+	task := as.taskForEditing(false)
+	assignee := strings.Repeat("a", models.AssigneeMaxLength+1)
+	res := as.HTML("/tasks/%s", task.ID).Put(url.Values{"title": {"Título original"}, "assignee": {assignee}})
+	as.Equal(422, res.Code)
+	as.Contains(res.Body.String(), "El responsable no puede superar los 100 caracteres.")
+	as.NoError(as.DB.Reload(task))
+	as.Equal("", task.Assignee)
 }

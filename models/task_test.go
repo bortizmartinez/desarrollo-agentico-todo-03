@@ -109,3 +109,40 @@ func (ms *ModelSuite) Test_Task_Priority_Invalid() {
 	ms.NoError(err)
 	ms.Equal(0, count)
 }
+
+func (ms *ModelSuite) Test_Task_Assignee_DefaultsEmpty() {
+	task := &Task{Title: "Sin responsable"}
+
+	verrs, err := ms.DB.ValidateAndCreate(task)
+	ms.NoError(err)
+	ms.False(verrs.HasAny())
+
+	reloaded := &Task{}
+	ms.NoError(ms.DB.Find(reloaded, task.ID))
+	ms.Equal("", reloaded.Assignee)
+}
+
+func (ms *ModelSuite) Test_Task_Assignee_AtLimit() {
+	task := &Task{Title: "Responsable al límite", Assignee: strings.Repeat("a", AssigneeMaxLength)}
+
+	verrs, err := ms.DB.ValidateAndCreate(task)
+	ms.NoError(err)
+	ms.False(verrs.HasAny())
+
+	reloaded := &Task{}
+	ms.NoError(ms.DB.Find(reloaded, task.ID))
+	ms.Equal(strings.Repeat("a", AssigneeMaxLength), reloaded.Assignee)
+}
+
+func (ms *ModelSuite) Test_Task_Assignee_TooLong_Invalid() {
+	task := &Task{Title: "Responsable demasiado largo", Assignee: strings.Repeat("a", AssigneeMaxLength+1)}
+
+	verrs, err := ms.DB.ValidateAndCreate(task)
+	ms.NoError(err)
+	ms.True(verrs.HasAny())
+	ms.Contains(verrs.Get("assignee"), "El responsable no puede superar los 100 caracteres.")
+
+	count, err := ms.DB.Count(&Task{})
+	ms.NoError(err)
+	ms.Equal(0, count)
+}
